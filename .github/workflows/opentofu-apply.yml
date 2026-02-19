@@ -1,0 +1,58 @@
+name: OpenTofu Apply
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'opentofu/**'
+      - '.github/workflows/opentofu-apply.yml'
+
+env:
+  TOFU_VERSION: '1.6.0'
+  WORKING_DIR: './opentofu/dev'
+
+jobs:
+  opentofu-apply:
+    name: Apply Infrastructure
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: OpenTofu Init
+        run: tofu init
+
+      - name: OpenTofu Plan
+        run: |
+          tofu plan \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -out=tfplan
+
+      - name: OpenTofu Apply
+        run: tofu apply -auto-approve tfplan
+
+      - name: Show Outputs
+        run: |
+          echo "## Infrastructure Deployed ✅" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Data Bucket:** $(tofu output -raw data_bucket_name)" >> $GITHUB_STEP_SUMMARY
+          echo "**VM URL:** $(tofu output -raw vm_url)" >> $GITHUB_STEP_SUMMARY

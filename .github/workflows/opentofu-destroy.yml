@@ -1,0 +1,58 @@
+name: OpenTofu Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Escribí DELETE para confirmar'
+        required: true
+
+env:
+  TOFU_VERSION: '1.6.0'
+  WORKING_DIR: './opentofu/dev'
+
+jobs:
+  opentofu-destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Verify confirmation
+        if: inputs.confirm != 'DELETE'
+        run: |
+          echo "::error::Tenés que escribir DELETE para confirmar"
+          exit 1
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: ${{ env.TOFU_VERSION }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: OpenTofu Init
+        run: tofu init
+
+      - name: OpenTofu Destroy
+        run: |
+          tofu destroy \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -auto-approve
+
+      - name: Summary
+        run: |
+          echo "## Infrastructure Destroyed 🗑️" >> $GITHUB_STEP_SUMMARY
+          
