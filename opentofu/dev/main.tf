@@ -1,3 +1,8 @@
+provider "google" {
+  project = var.project_id
+  region  = var.location
+}
+
 resource "google_storage_bucket" "dataset" {
   count                       = var.enable_bucket ? 1 : 0
   name                        = "${var.project_id}-${var.bucket_name}"

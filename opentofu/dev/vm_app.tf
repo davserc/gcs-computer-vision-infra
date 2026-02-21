@@ -266,6 +266,16 @@ print(decoded)
 PY
         then
           chmod 600 /opt/app/secrets/gcp.json
+          if [[ "$${NO_SQL_CRED}" == "true" && ! -f /opt/app/secrets/cloudsql.json ]]; then
+            cp /opt/app/secrets/gcp.json /opt/app/secrets/cloudsql.json
+            chmod 600 /opt/app/secrets/cloudsql.json
+          fi
+          if [[ "$${NO_SQL_CRED}" == "true" ]]; then
+            mkdir -p /opt/app/src/secrets
+            cp /opt/app/secrets/gcp.json /opt/app/src/secrets/cloudsql.json
+            chown 65532:65532 /opt/app/src/secrets/cloudsql.json
+            chmod 644 /opt/app/src/secrets/cloudsql.json
+          fi
         else
           echo "ERROR: Failed to fetch or decode GCP_SA_B64 from Secret Manager." >&2
           exit 1
