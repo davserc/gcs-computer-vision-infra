@@ -53,6 +53,7 @@ jobs:
         run: |
           tofu plan \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}" \
             -no-color \
             -input=false \
             -out=tfplan \
