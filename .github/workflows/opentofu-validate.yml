@@ -68,12 +68,17 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const plan = fs.readFileSync('${{ env.WORKING_DIR }}/plan_output.txt', 'utf8');
+            let plan;
+            try {
+              plan = fs.readFileSync('${{ env.WORKING_DIR }}/plan_output.txt', 'utf8');
+            } catch (e) {
+              plan = '⚠️ Plan output not available — a previous step may have failed.\n' + e.message;
+            }
             const maxLen = 65000;
             const truncated = plan.length > maxLen
               ? plan.substring(0, maxLen) + '\n...(truncated)'
               : plan;
-            const body = `## OpenTofu Plan\n\`\`\`hcl\n${truncated}\n\`\`\``;
+            const body = `## OpenTofu Plan\n\`\`\`\n${truncated}\n\`\`\``;
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
