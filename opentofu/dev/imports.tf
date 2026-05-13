@@ -44,12 +44,12 @@ import {
 # ── Bucket IAM ────────────────────────────────────────────────────────────────
 import {
   to = google_storage_bucket_iam_member.viewer[0]
-  id = "b/${local._bucket_id}/roles/storage.objectViewer/serviceAccount:${local._sa_viewer_email}"
+  id = "${local._bucket_id} roles/storage.objectViewer serviceAccount:${local._sa_viewer_email}"
 }
 
 import {
   to = google_storage_bucket_iam_member.uploader[0]
-  id = "b/${local._bucket_id}/roles/storage.objectAdmin/serviceAccount:${local._sa_viewer_email}"
+  id = "${local._bucket_id} roles/storage.objectAdmin serviceAccount:${local._sa_viewer_email}"
 }
 
 # ── Secret Manager ────────────────────────────────────────────────────────────
@@ -71,7 +71,7 @@ import {
 
 import {
   to = google_sql_user.app_user[0]
-  id = "projects/${var.project_id}/instances/${var.db_instance_name}/users/${var.db_user}"
+  id = "${var.project_id}/${var.db_instance_name}/${var.db_user}"
 }
 
 # ── Project IAM ───────────────────────────────────────────────────────────────
