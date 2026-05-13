@@ -50,29 +50,8 @@ resource "google_storage_bucket_object" "dataset" {
   content_type = var.dataset_content_type
 }
 
-resource "google_service_account_key" "dataset_viewer" {
-  count              = var.enable_bucket ? 1 : 0
-  service_account_id = google_service_account.dataset_viewer[0].name
-
-  keepers = {
-    rotate_on = var.key_rotation_id
-  }
-}
-
-resource "google_secret_manager_secret" "sa_key" {
-  count     = (var.enable_bucket && var.store_key_in_secret) ? 1 : 0
-  project   = var.project_id
-  secret_id = var.secret_id
-
-  labels = var.labels
-
-  replication {
-    auto {}
-  }
-}
-
-resource "google_secret_manager_secret_version" "sa_key" {
-  count       = (var.enable_bucket && var.store_key_in_secret) ? 1 : 0
-  secret      = google_secret_manager_secret.sa_key[0].id
-  secret_data = google_service_account_key.dataset_viewer[0].private_key
-}
+# google_service_account_key removed: org policy constraints/iam.disableServiceAccountKeyCreation
+# prohibits programmatic key creation. Populate the GCP_SA_B64 Secret Manager secret manually:
+#   gcloud secrets versions add GCP_SA_B64 \
+#     --data-file=<(echo "$GCP_SA_B64_VALUE") \
+#     --project=<project_id>

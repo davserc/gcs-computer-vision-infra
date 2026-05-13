@@ -13,22 +13,6 @@ output "service_account_email" {
   value       = var.enable_bucket ? google_service_account.dataset_viewer[0].email : null
 }
 
-output "service_account_key_json_b64" {
-  description = "Base64-encoded service account key JSON (export as GCP_SA_B64)."
-  value       = var.enable_bucket ? google_service_account_key.dataset_viewer[0].private_key : null
-  sensitive   = true
-}
-
-output "service_account_key_json" {
-  description = "Decoded service account key JSON."
-  value       = var.enable_bucket ? base64decode(google_service_account_key.dataset_viewer[0].private_key) : null
-  sensitive   = true
-}
-
-output "secret_id" {
-  description = "Secret Manager secret resource ID if created."
-  value       = (var.enable_bucket && var.store_key_in_secret) ? google_secret_manager_secret.sa_key[0].id : null
-}
 
 output "db_instance_connection_name" {
   description = "Cloud SQL instance connection name."

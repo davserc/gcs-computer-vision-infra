@@ -115,6 +115,7 @@ Si hiciste cambios en el repo de la app:
 - `GCP_SA_B64` se obtiene desde Secret Manager y se transforma en `/opt/app/secrets/gcp.json`.
 - `VAST_SSH_KEY` se escribe en `/opt/app/secrets/vast_ed25519`.
 - `VAST_API_KEY` se inyecta al runtime y es requerido por el worker.
+- `DB_PASSWORD` se obtiene desde Secret Manager en runtime para construir `DATABASE_URL` y ejecutar migraciones.
 
 ### Secrets requeridos (paso a paso)
 
@@ -160,5 +161,5 @@ tofu destroy
    - Host: IP publica de la instancia
    - Puerto: 5432
    - DB: computer-vision
-   - Usuario: sauron
-   - Password: ComunidadDelAnillo92
+   - Usuario: valor de `db_user` (terraform variables)
+   - Password: secreto `DB_PASSWORD` en Secret Manager

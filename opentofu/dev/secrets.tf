@@ -32,23 +32,7 @@ resource "google_secret_manager_secret" "gcp_sa_b64" {
   depends_on = [google_project_service.secretmanager]
 }
 
-resource "google_secret_manager_secret_version" "gcp_sa_b64" {
-  count       = var.enable_bucket ? 1 : 0
-  secret      = google_secret_manager_secret.gcp_sa_b64[0].id
-  secret_data = google_service_account_key.dataset_viewer[0].private_key
-
-  depends_on = [
-    google_service_account_key.dataset_viewer,
-  ]
-
-  lifecycle {
-    replace_triggered_by = [
-      google_service_account_key.dataset_viewer[0].private_key,
-    ]
-
-    precondition {
-      condition     = length(google_service_account_key.dataset_viewer[0].private_key) > 0
-      error_message = "GCP_SA_B64 secret data is empty; service account key was not created."
-    }
-  }
-}
+# google_secret_manager_secret_version.gcp_sa_b64 removed: depended on
+# google_service_account_key which is blocked by org policy.
+# The secret shell (GCP_SA_B64) was already created and is managed with
+# prevent_destroy. Populate the value manually via gcloud or GCP console.
