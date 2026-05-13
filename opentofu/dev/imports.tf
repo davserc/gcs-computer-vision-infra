@@ -5,7 +5,6 @@
 locals {
   _bucket_id       = "${var.project_id}-${var.bucket_name}"
   _sa_viewer_email = "${var.service_account_id}@${var.project_id}.iam.gserviceaccount.com"
-  _sa_vm_email     = "${var.vm_service_account_id}@${var.project_id}.iam.gserviceaccount.com"
 }
 
 # ── Project APIs ──────────────────────────────────────────────────────────────
@@ -34,11 +33,6 @@ import {
 import {
   to = google_service_account.dataset_viewer[0]
   id = "projects/${var.project_id}/serviceAccounts/${local._sa_viewer_email}"
-}
-
-import {
-  to = google_service_account.vm[0]
-  id = "projects/${var.project_id}/serviceAccounts/${local._sa_vm_email}"
 }
 
 # ── Bucket IAM ────────────────────────────────────────────────────────────────
@@ -72,26 +66,4 @@ import {
 import {
   to = google_sql_user.app_user[0]
   id = "${var.project_id}/${var.db_instance_name}/${var.db_user}"
-}
-
-# ── Project IAM ───────────────────────────────────────────────────────────────
-import {
-  to = google_project_iam_member.vm_secret_accessor[0]
-  id = "${var.project_id} roles/secretmanager.secretAccessor serviceAccount:${local._sa_vm_email}"
-}
-
-import {
-  to = google_project_iam_member.vm_cloudsql_client[0]
-  id = "${var.project_id} roles/cloudsql.client serviceAccount:${local._sa_vm_email}"
-}
-
-# ── Compute ───────────────────────────────────────────────────────────────────
-import {
-  to = google_compute_firewall.app_ingress[0]
-  id = "projects/${var.project_id}/global/firewalls/${var.vm_name}-ingress"
-}
-
-import {
-  to = google_compute_instance.app_vm[0]
-  id = "projects/${var.project_id}/zones/${var.vm_zone}/instances/${var.vm_name}"
 }

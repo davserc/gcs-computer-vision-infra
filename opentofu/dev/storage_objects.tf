@@ -16,9 +16,3 @@ resource "google_storage_bucket_object" "app_bundle" {
   content_type = "application/gzip"
 }
 
-resource "google_storage_bucket_iam_member" "compose_viewer" {
-  count  = (var.enable_vm && local.effective_bundle_bucket != "") ? 1 : 0
-  bucket = local.effective_bundle_bucket
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${google_service_account.vm[0].email}"
-}

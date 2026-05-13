@@ -9,8 +9,4 @@ locals {
   effective_bundle_bucket = local.compose_bucket_name != "" ? local.compose_bucket_name : (
     (local.compose_source_path != "" || local.app_bundle_source_path != "") && var.enable_bucket ? google_storage_bucket.dataset[0].name : ""
   )
-  obs_loki_url = var.enable_observability ? format(
-    "http://%s:3100/loki/api/v1/push",
-    google_compute_address.obs_internal_ip[0].address
-  ) : ""
 }

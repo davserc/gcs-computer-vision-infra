@@ -34,17 +34,3 @@ output "db_user" {
   value       = var.enable_sql ? google_sql_user.app_user[0].name : null
 }
 
-output "vm_external_ip" {
-  description = "VM external public IP."
-  value       = var.enable_vm ? google_compute_instance.app_vm[0].network_interface[0].access_config[0].nat_ip : null
-}
-
-output "vm_name" {
-  description = "VM name."
-  value       = var.enable_vm ? google_compute_instance.app_vm[0].name : null
-}
-
-output "app_ports" {
-  description = "Exposed app ports."
-  value       = var.app_ports
-}
