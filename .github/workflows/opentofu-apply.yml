@@ -36,7 +36,10 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json" >> "$GITHUB_ENV"
 
       - name: OpenTofu Init
-        run: tofu init
+        run: |
+          tofu init \
+            -backend-config="bucket=${{ secrets.GCP_PROJECT_ID }}-computer_vision_yolo" \
+            -backend-config="prefix=opentofu/state/dev"
 
       - name: OpenTofu Plan
         run: |
