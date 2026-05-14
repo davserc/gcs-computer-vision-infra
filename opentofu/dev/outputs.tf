@@ -34,3 +34,14 @@ output "db_user" {
   value       = var.enable_sql ? google_sql_user.app_user[0].name : null
 }
 
+output "grafana_admin_password_secret" {
+  description = "Secret Manager secret holding the Grafana admin password."
+  value       = google_secret_manager_secret.grafana_admin_password.name
+}
+
+output "grafana_admin_password" {
+  description = "Generated Grafana admin password (also stored in Secret Manager)."
+  value       = random_password.grafana_admin.result
+  sensitive   = true
+}
+
