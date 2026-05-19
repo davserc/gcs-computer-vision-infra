@@ -9,10 +9,9 @@ output "dataset_object_gs_uri" {
 }
 
 output "service_account_email" {
-  description = "Service account email."
+  description = "Dataset viewer service account email."
   value       = var.enable_bucket ? google_service_account.dataset_viewer[0].email : null
 }
-
 
 output "db_instance_connection_name" {
   description = "Cloud SQL instance connection name."
@@ -34,14 +33,18 @@ output "db_user" {
   value       = var.enable_sql ? google_sql_user.app_user[0].name : null
 }
 
-output "grafana_admin_password_secret" {
-  description = "Secret Manager secret holding the Grafana admin password."
-  value       = google_secret_manager_secret.grafana_admin_password.name
+output "gke_cluster_name" {
+  description = "GKE cluster name."
+  value       = var.enable_gke ? google_container_cluster.cv_platform[0].name : null
 }
 
-output "grafana_admin_password" {
-  description = "Generated Grafana admin password (also stored in Secret Manager)."
-  value       = random_password.grafana_admin.result
+output "gke_cluster_endpoint" {
+  description = "GKE cluster API server endpoint."
+  value       = var.enable_gke ? google_container_cluster.cv_platform[0].endpoint : null
   sensitive   = true
 }
 
+output "gke_connect_command" {
+  description = "gcloud command to configure kubectl for this cluster."
+  value       = var.enable_gke ? "gcloud container clusters get-credentials ${var.gke_cluster_name} --zone ${var.gke_zone} --project ${var.project_id}" : null
+}

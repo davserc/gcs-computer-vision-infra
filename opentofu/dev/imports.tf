@@ -9,11 +9,6 @@ locals {
 
 # ── Project APIs ──────────────────────────────────────────────────────────────
 import {
-  to = google_project_service.compute[0]
-  id = "${var.project_id}/compute.googleapis.com"
-}
-
-import {
   to = google_project_service.sqladmin[0]
   id = "${var.project_id}/sqladmin.googleapis.com"
 }
@@ -22,6 +17,12 @@ import {
   to = google_project_service.secretmanager[0]
   id = "${var.project_id}/secretmanager.googleapis.com"
 }
+
+# Uncomment once container.googleapis.com has been enabled in GCP:
+# import {
+#   to = google_project_service.container[0]
+#   id = "${var.project_id}/container.googleapis.com"
+# }
 
 # ── Storage bucket ────────────────────────────────────────────────────────────
 import {
