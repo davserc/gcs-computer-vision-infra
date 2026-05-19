@@ -132,7 +132,7 @@ variable "db_name" {
 variable "db_user" {
   description = "PostgreSQL user."
   type        = string
-  default     = "sauron"
+  default     = "app"
 }
 
 variable "db_password" {
@@ -150,181 +150,6 @@ variable "db_authorized_networks" {
   default = []
 }
 
-variable "vm_name" {
-  description = "Compute Engine VM name."
-  type        = string
-  default     = "cv-app-vm"
-}
-
-variable "enable_vm" {
-  description = "Whether to create the Compute Engine VM."
-  type        = bool
-  default     = true
-}
-
-variable "vm_zone" {
-  description = "Compute Engine zone."
-  type        = string
-  default     = "us-central1-a"
-}
-
-variable "vm_machine_type" {
-  description = "Compute Engine machine type."
-  type        = string
-  default     = "e2-micro"
-}
-
-variable "vm_boot_image" {
-  description = "Boot disk image."
-  type        = string
-  default     = "debian-cloud/debian-12"
-}
-
-variable "vm_boot_disk_size_gb" {
-  description = "Boot disk size in GB."
-  type        = number
-  default     = 20
-}
-
-variable "vm_boot_disk_type" {
-  description = "Boot disk type (e.g. pd-standard, pd-ssd)."
-  type        = string
-  default     = "pd-ssd"
-}
-
-variable "vm_network_tag" {
-  description = "Network tag for firewall rules."
-  type        = string
-  default     = "cv-app"
-}
-
-variable "vm_service_account_id" {
-  description = "VM service account ID (short name)."
-  type        = string
-  default     = "cv-app-vm"
-}
-
-variable "vm_service_account_display_name" {
-  description = "VM service account display name."
-  type        = string
-  default     = "Computer Vision App VM"
-}
-
-variable "enable_observability" {
-  description = "Whether to create a dedicated VM with Prometheus + Grafana."
-  type        = bool
-  default     = false
-}
-
-variable "obs_vm_name" {
-  description = "Observability VM name."
-  type        = string
-  default     = "cv-obs-vm"
-}
-
-variable "obs_vm_zone" {
-  description = "Observability VM zone."
-  type        = string
-  default     = "us-central1-a"
-}
-
-variable "obs_vm_machine_type" {
-  description = "Observability VM machine type."
-  type        = string
-  default     = "e2-micro"
-}
-
-variable "obs_vm_boot_image" {
-  description = "Observability VM boot image."
-  type        = string
-  default     = "debian-cloud/debian-12"
-}
-
-variable "obs_vm_boot_disk_size_gb" {
-  description = "Observability VM boot disk size in GB."
-  type        = number
-  default     = 20
-}
-
-variable "obs_vm_boot_disk_type" {
-  description = "Observability VM boot disk type."
-  type        = string
-  default     = "pd-ssd"
-}
-
-variable "obs_vm_network_tag" {
-  description = "Network tag for observability firewall rules."
-  type        = string
-  default     = "cv-obs"
-}
-
-variable "obs_grafana_port" {
-  description = "Grafana port exposed on the observability VM."
-  type        = number
-  default     = 3000
-}
-
-variable "obs_grafana_source_ranges" {
-  description = "CIDR ranges allowed to access Grafana."
-  type        = list(string)
-  default     = ["186.22.17.19/32"]
-}
-
-variable "obs_grafana_admin_password" {
-  description = "Grafana admin password."
-  type        = string
-  sensitive   = true
-  default     = "admin"
-}
-
-variable "app_ports" {
-  description = "TCP ports to expose on the VM."
-  type        = list(number)
-  default     = [80, 443]
-}
-
-variable "app_source_ranges" {
-  description = "CIDR ranges allowed to reach the app ports."
-  type        = list(string)
-  default     = ["0.0.0.0/0"]
-}
-
-variable "compose_bucket_name" {
-  description = "GCS bucket containing docker-compose.yml (optional)."
-  type        = string
-  default     = ""
-}
-
-variable "compose_source_path" {
-  description = "Local path to docker-compose.yml to upload to GCS (optional)."
-  type        = string
-  default     = ""
-}
-
-variable "compose_object_name" {
-  description = "GCS object name for docker-compose.yml."
-  type        = string
-  default     = "docker-compose.yml"
-}
-
-variable "app_bundle_source_path" {
-  description = "Local path to a tar.gz of the app repo to upload (optional)."
-  type        = string
-  default     = ""
-}
-
-variable "app_bundle_object_name" {
-  description = "GCS object name for the app bundle tar.gz."
-  type        = string
-  default     = "app_bundle.tar.gz"
-}
-
-variable "app_secret_names" {
-  description = "Secret Manager secret names to export into the app env file."
-  type        = list(string)
-  default     = []
-}
-
 variable "app_secrets" {
   description = "Map of env var name -> secret value to create in Secret Manager."
   type        = map(string)
@@ -332,8 +157,40 @@ variable "app_secrets" {
   default     = {}
 }
 
-variable "app_env_file_name" {
-  description = "Env file name created on the VM from Secret Manager (relative to app root)."
+# ── GKE ───────────────────────────────────────────────────────────────────────
+
+variable "enable_gke" {
+  description = "Whether to create the GKE cluster and node pool."
+  type        = bool
+  default     = true
+}
+
+variable "gke_cluster_name" {
+  description = "GKE cluster name."
   type        = string
-  default     = ".env.runtime"
+  default     = "cv-platform"
+}
+
+variable "gke_zone" {
+  description = "GKE cluster zone."
+  type        = string
+  default     = "us-central1-a"
+}
+
+variable "gke_machine_type" {
+  description = "GKE node machine type."
+  type        = string
+  default     = "e2-standard-2"
+}
+
+variable "gke_min_nodes" {
+  description = "Minimum number of GKE nodes."
+  type        = number
+  default     = 1
+}
+
+variable "gke_max_nodes" {
+  description = "Maximum number of GKE nodes."
+  type        = number
+  default     = 3
 }
