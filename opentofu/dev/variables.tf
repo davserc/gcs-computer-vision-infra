@@ -132,7 +132,7 @@ variable "db_name" {
 variable "db_user" {
   description = "PostgreSQL user."
   type        = string
-  default     = "app"
+  default     = "sauron"
 }
 
 variable "db_password" {
