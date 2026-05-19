@@ -58,13 +58,3 @@ import {
   to = google_sql_database_instance.postgres[0]
   id = "projects/${var.project_id}/instances/${var.db_instance_name}"
 }
-
-import {
-  to = google_sql_database.app_db[0]
-  id = "projects/${var.project_id}/instances/${var.db_instance_name}/databases/${var.db_name}"
-}
-
-import {
-  to = google_sql_user.app_user[0]
-  id = "${var.project_id}/${var.db_instance_name}/${var.db_user}"
-}
