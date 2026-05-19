@@ -34,25 +34,49 @@ jobs:
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
 
+      - name: Preflight required secrets
+        id: preflight
+        env:
+          GCP_SA_B64: ${{ secrets.GCP_SA_B64 }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          missing=()
+          [ -z "$GCP_SA_B64" ] && missing+=("GCP_SA_B64")
+          [ -z "$GCP_PROJECT_ID" ] && missing+=("GCP_PROJECT_ID")
+          [ -z "$DB_PASSWORD" ] && missing+=("DB_PASSWORD")
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "missing_secrets=${missing[*]}" >> "$GITHUB_OUTPUT"
+            echo "Skipping OpenTofu validate/plan because required secrets are missing: ${missing[*]}"
+          else
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Authenticate to Google Cloud
+        if: steps.preflight.outputs.has_secrets == 'true'
         run: |
           echo "${{ secrets.GCP_SA_B64 }}" | base64 -d > /tmp/gcp-creds.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json" >> "$GITHUB_ENV"
 
       - name: OpenTofu Init
+        if: steps.preflight.outputs.has_secrets == 'true'
         run: |
           tofu init -input=false \
             -backend-config="bucket=${{ secrets.GCP_PROJECT_ID }}-computer_vision_yolo" \
             -backend-config="prefix=opentofu/state/dev"
 
       - name: Check formatting
+        if: steps.preflight.outputs.has_secrets == 'true'
         run: tofu fmt -check -recursive
 
       - name: Validate configuration
+        if: steps.preflight.outputs.has_secrets == 'true'
         run: tofu validate
 
       - name: Plan (no apply)
         id: plan
+        if: steps.preflight.outputs.has_secrets == 'true'
         run: |
           tofu plan \
             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
@@ -69,11 +93,16 @@ jobs:
         with:
           script: |
             const fs = require('fs');
+            const hasSecrets = '${{ steps.preflight.outputs.has_secrets }}' === 'true';
             let plan;
-            try {
-              plan = fs.readFileSync('${{ env.WORKING_DIR }}/plan_output.txt', 'utf8');
-            } catch (e) {
-              plan = '⚠️ Plan output not available — a previous step may have failed.\n' + e.message;
+            if (!hasSecrets) {
+              plan = 'OpenTofu plan skipped: missing required secrets: ${{ steps.preflight.outputs.missing_secrets }}';
+            } else {
+              try {
+                plan = fs.readFileSync('${{ env.WORKING_DIR }}/plan_output.txt', 'utf8');
+              } catch (e) {
+                plan = 'Plan output not available; a previous step may have failed.\n' + e.message;
+              }
             }
             const maxLen = 65000;
             const truncated = plan.length > maxLen
@@ -88,5 +117,5 @@ jobs:
             });
 
       - name: Fail if plan failed
-        if: steps.plan.outputs.exitcode != '0'
+        if: steps.preflight.outputs.has_secrets == 'true' && steps.plan.outputs.exitcode != '0'
         run: exit 1
