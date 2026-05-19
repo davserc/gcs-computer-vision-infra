@@ -55,5 +55,6 @@ jobs:
         run: |
           echo "## Infrastructure Deployed ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Data Bucket:** $(tofu output -raw data_bucket_name)" >> $GITHUB_STEP_SUMMARY
-          echo "**VM URL:** $(tofu output -raw vm_url)" >> $GITHUB_STEP_SUMMARY
+          echo "**Bucket:** $(tofu output -raw bucket_name 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
+          echo "**DB IP:** $(tofu output -raw db_public_ip 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
+          echo "**GKE Connect:** $(tofu output -raw gke_connect_command 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
