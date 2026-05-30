@@ -14,19 +14,8 @@ resource "google_sql_database_instance" "postgres" {
 
     ip_configuration {
       ipv4_enabled = true
-      # Allow connections from anywhere — K8s nodes connect via public IP.
-      # Restrict to GKE node CIDR in production.
-      authorized_networks {
-        name  = "allow-all"
-        value = "0.0.0.0/0"
-      }
-      dynamic "authorized_networks" {
-        for_each = var.db_authorized_networks
-        content {
-          name  = authorized_networks.value.name
-          value = authorized_networks.value.value
-        }
-      }
+      # Sin authorized_networks: Cloud SQL Auth Proxy autentica via IAM/mTLS.
+      # Los pods se conectan a localhost:5432 (sidecar), nunca en TCP directo.
     }
   }
 
