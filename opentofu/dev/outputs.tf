@@ -48,3 +48,8 @@ output "gke_connect_command" {
   description = "gcloud command to configure kubectl for this cluster."
   value       = var.enable_gke ? "gcloud container clusters get-credentials ${var.gke_cluster_name} --zone ${var.gke_zone} --project ${var.project_id}" : null
 }
+
+output "cloudsql_proxy_sa_email" {
+  description = "GSA email para el Cloud SQL Auth Proxy (usar en la anotación WI del ServiceAccount K8s)."
+  value       = (var.enable_gke && var.enable_sql) ? google_service_account.cloudsql_proxy[0].email : null
+}

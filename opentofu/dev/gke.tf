@@ -45,6 +45,10 @@ resource "google_container_cluster" "cv_platform" {
   networking_mode = "VPC_NATIVE"
   ip_allocation_policy {}
 
+  workload_identity_config {
+    workload_pool = "${var.project_id}.svc.id.goog"
+  }
+
   depends_on = [google_project_service.container]
 }
 
@@ -69,10 +73,38 @@ resource "google_container_node_pool" "cv_platform_nodes" {
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform",
     ]
+
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
   }
 
   management {
     auto_repair  = true
     auto_upgrade = true
   }
+}
+
+# ── Cloud SQL Auth Proxy — Workload Identity ────────────────────────────────
+
+resource "google_service_account" "cloudsql_proxy" {
+  count        = var.enable_gke && var.enable_sql ? 1 : 0
+  account_id   = "cv-cloudsql-proxy"
+  display_name = "Cloud SQL Auth Proxy (GKE Workload Identity)"
+  project      = var.project_id
+}
+
+resource "google_project_iam_member" "cloudsql_proxy_client" {
+  count   = var.enable_gke && var.enable_sql ? 1 : 0
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.cloudsql_proxy[0].email}"
+}
+
+# Permite que la KSA cv-platform/cv-platform-sa actúe como esta GSA
+resource "google_service_account_iam_member" "workload_identity_binding" {
+  count              = var.enable_gke && var.enable_sql ? 1 : 0
+  service_account_id = google_service_account.cloudsql_proxy[0].name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[cv-platform/cv-platform-sa]"
 }

@@ -141,15 +141,6 @@ variable "db_password" {
   sensitive   = true
 }
 
-variable "db_authorized_networks" {
-  description = "Authorized networks for Cloud SQL public IP access."
-  type = list(object({
-    name  = string
-    value = string
-  }))
-  default = []
-}
-
 variable "app_secrets" {
   description = "Map of env var name -> secret value to create in Secret Manager."
   type        = map(string)
