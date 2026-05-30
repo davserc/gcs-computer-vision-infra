@@ -54,4 +54,9 @@ import {
 }
 
 # ── Cloud SQL ─────────────────────────────────────────────────────────────────
-# Import block removed: cv-postgres does not exist in GCP (will be created by tofu apply).
+# Descomentar si la instancia ya existe en GCP (fue creada por un apply anterior).
+# Si no existe, tofu apply la creará desde sql.tf sin necesidad del import.
+# import {
+#   to = google_sql_database_instance.postgres[0]
+#   id = "projects/${var.project_id}/instances/${var.db_instance_name}"
+# }
