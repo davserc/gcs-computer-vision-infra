@@ -41,6 +41,17 @@ jobs:
             -backend-config="bucket=${{ secrets.GCP_PROJECT_ID }}-computer_vision_yolo" \
             -backend-config="prefix=opentofu/state/dev"
 
+      # Stage 1: asegura que la instancia Cloud SQL exista antes del plan completo.
+      # Si google_sql_database / google_sql_user están en state pero la instancia
+      # fue eliminada externamente, el plan falla con 404 al refrescarlos.
+      # Aplicando la instancia primero (no-op si ya existe) el plan completo funciona.
+      - name: OpenTofu Apply — Cloud SQL instance (pre-requisito)
+        run: |
+          tofu apply -auto-approve \
+            -target='google_sql_database_instance.postgres[0]' \
+            -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="db_password=${{ secrets.DB_PASSWORD }}"
+
       - name: OpenTofu Plan
         run: |
           tofu plan \
