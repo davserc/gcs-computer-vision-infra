@@ -67,5 +67,7 @@ jobs:
           echo "## Infrastructure Deployed ✅" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Bucket:** $(tofu output -raw bucket_name 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
+          echo "**DB connection name:** $(tofu output -raw db_instance_connection_name 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
           echo "**DB IP:** $(tofu output -raw db_public_ip 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
+          echo "**Cloud SQL Proxy SA:** $(tofu output -raw cloudsql_proxy_sa_email 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
           echo "**GKE Connect:** $(tofu output -raw gke_connect_command 2>/dev/null || echo n/a)" >> $GITHUB_STEP_SUMMARY
