@@ -30,10 +30,10 @@ jobs:
         with:
           tofu_version: ${{ env.TOFU_VERSION }}
 
-      - name: Authenticate to Google Cloud
-        run: |
-          echo "${{ secrets.GCP_SA_B64 }}" | base64 -d > /tmp/gcp-creds.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json" >> "$GITHUB_ENV"
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_JSON }}
 
       - name: OpenTofu Init
         run: |
