@@ -17,6 +17,10 @@ jobs:
     name: Apply Infrastructure
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write   # requerido para Workload Identity Federation
+
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIR }}
@@ -33,7 +37,8 @@ jobs:
       - id: auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_SA_JSON }}
+          workload_identity_provider: "projects/647757978174/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          service_account: "cv-cicd@project-38c56a6f-24a9-45fb-aef.iam.gserviceaccount.com"
 
       - name: OpenTofu Init
         run: |
