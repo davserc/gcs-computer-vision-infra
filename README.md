@@ -1,165 +1,154 @@
-# OpenTofu (GCS-Computer-Vision)
+# OpenTofu — GCS Computer Vision Infra
 
-Este modulo de OpenTofu crea y despliega toda la infraestructura necesaria para correr la aplicacion:
+Módulo OpenTofu que crea y despliega toda la infraestructura GCP necesaria para la plataforma de visión por computadora.
 
-- Bucket GCS para dataset y artefactos
-- Service accounts y permisos
-- Secret Manager (GCP_SA_B64 y VAST_SSH_KEY)
-- VM de aplicacion con startup script
-- VM de observabilidad (Grafana + Loki + Prometheus + cAdvisor + node-exporter)
-- Cloud SQL Postgres
-- Upload de `docker-compose.yml` y `app_bundle.tar.gz` al bucket
+## Infraestructura provisionada
 
-La aplicacion se levanta automaticamente en la VM usando el bundle.
+- **GCS bucket** — datasets y artefactos del modelo
+- **Cloud SQL Postgres** — base de datos de la plataforma
+- **Service Accounts** — permisos granulares para cada componente
+- **Secret Manager** — `GCP_SA_B64`, `VAST_SSH_KEY`, `VAST_API_KEY`, `DB_PASSWORD`
+- **VM de aplicación** — startup script que levanta los servicios con Docker Compose
+- **CI/CD** — Workload Identity Federation para GitHub Actions (sin SA keys en el repo)
 
 ## Arquitectura del proyecto
 
-![alt text](image.png)
+![Diagrama de arquitectura](image.png)
 
 ## Requisitos
 
-- OpenTofu instalado
-- gcloud autenticado en el proyecto
-- Acceso a Vast.ai (API key y SSH key)
+- OpenTofu >= 1.6
+- `gcloud` CLI autenticado en el proyecto GCP
+- Acceso a Vast.ai (API key + SSH key)
 - Dataset `taco.tar.gz` disponible en `dataset/`
 
-## Paso a paso (deploy completo)
+## Deploy completo (paso a paso)
 
-1. SSH key para Vast (solo una vez):
-   - Ejecutar en Windows:
-     ```
-     .\scripts\vast_ssh_setup.ps1 -Project unlu-genai-serranodavid
-     ```
-   - La clave publica debe estar en Vast.ai -> Account -> SSH Keys.
-   - Esto hoy no esta automatizado en Vast.ai, es un paso manual unico (no en cada deploy).
+### 1. Clave SSH para Vast.ai (una sola vez)
 
-2. Bundle de la app:
-   - El `app_bundle.tar.gz` lo provee el equipo.
-
-3. Aplicar OpenTofu:
-   - Ejecutar en `opentofu/dev`:
-     ```
-     tofu apply
-     ```
-
-4. Esperar a que la VM termine el startup:
-   - Conectarse por SSH a la VM.
-   - Revisar logs:
-     ```
-     sudo tail -n 200 /var/log/startup-script.log
-     ```
-
-## Validaciones rapidas en la VM
-
-- GCP JSON:
-  ```
-  sudo ls -l /opt/app/secrets/gcp.json
-  sudo head -n 1 /opt/app/secrets/gcp.json
-  ```
-
-- VAST SSH key:
-  ```
-  sudo ssh-keygen -yf /opt/app/secrets/vast_ed25519 >/dev/null && echo HOST_OK || echo HOST_FAIL
-  ```
-
-- Contenedor training-worker:
-  ```
-  cd /opt/app/src
-  docker compose -f infra/docker/docker-compose.local.yml -f infra/docker/docker-compose.override.yml exec -T training-worker \
-    sh -lc 'ssh-keygen -yf /root/.ssh/id_ed25519 >/dev/null && echo CT_OK || echo CT_FAIL'
-  ```
-
-## Observabilidad (Grafana/Loki)
-
-La VM de observabilidad se aprovisiona automaticamente con:
-- Datasource Loki
-- Dashboards en `/opt/obs/grafana/dashboards/`
-
-Si actualizas dashboards/provisioning, recrea la VM:
+```powershell
+.\opentofu\dev\scripts\vast_ssh_setup.ps1 -Project unlu-genai-serranodavid
 ```
-tofu taint google_compute_instance.obs_vm[0]
+
+La clave pública resultante debe cargarse manualmente en **Vast.ai → Account → SSH Keys** (paso manual único, no se repite en cada deploy).
+
+### 2. Crear Secrets en GCP Secret Manager
+
+#### VAST_API_KEY
+
+```powershell
+$apiKey = Read-Host "Ingresá tu Vast.ai API Key" -AsSecureString
+$plain  = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($apiKey))
+$tmp = New-TemporaryFile
+$plain | Set-Content -NoNewline $tmp
+gcloud secrets create VAST_API_KEY --replication-policy=automatic --project unlu-genai-serranodavid 2>$null
+gcloud secrets versions add VAST_API_KEY --data-file $tmp --project unlu-genai-serranodavid
+Remove-Item $tmp
+```
+
+#### DB_PASSWORD
+
+```powershell
+$dbPass = Read-Host "Ingresá la contraseña de la BD" -AsSecureString
+$plain  = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+            [Runtime.InteropServices.Marshal]::SecureStringToBSTR($dbPass))
+$tmp = New-TemporaryFile
+$plain | Set-Content -NoNewline $tmp
+gcloud secrets create DB_PASSWORD --replication-policy=automatic --project unlu-genai-serranodavid 2>$null
+gcloud secrets versions add DB_PASSWORD --data-file $tmp --project unlu-genai-serranodavid
+Remove-Item $tmp
+```
+
+> `GCP_SA_B64` se crea automáticamente por OpenTofu.
+
+### 3. Bundle de la app
+
+```powershell
+# Desde la raíz del monorepo (d:\Diplomatura-IA\TpFinal4)
+tar -czf app_bundle.tar.gz cv-cloudgpu-platform/
+```
+
+### 4. Aplicar OpenTofu
+
+```bash
+cd opentofu/dev
+tofu init      # primera vez
 tofu apply
 ```
 
-### Acceso a Grafana
+### 5. Verificar startup de la VM
 
-- URL: `http://<IP_PUBLICA_OBS_VM>:3000`
-- Usuario: `admin`
-- Password: valor de `obs_grafana_admin_password` en `terraform.tfvars`
+```bash
+# Conectarse por SSH a la VM de aplicación
+gcloud compute ssh cv-app-vm --project unlu-genai-serranodavid --zone us-central1-a
 
-### Labels reales de logs
-
-Promtail publica labels como `host`, `service`, `container`, `compose_project`, `container_id`.
-No existe label `job` por defecto.
-
-Ejemplos en Grafana (LogQL):
-```
-{host="cv-app-vm", service="api-gateway"}
-{host="cv-app-vm", service="training-worker"}
-{host="cv-app-vm", service="model-serving"}
-{host="cv-app-vm", service="model-registry"}
+# Revisar el log de startup
+sudo tail -n 200 /var/log/startup-script.log
 ```
 
-## Cambios en la app
+## Validaciones rápidas en la VM
 
-Si hiciste cambios en el repo de la app:
+```bash
+# Secret GCP presente
+sudo ls -l /opt/app/secrets/gcp.json
+sudo head -c 30 /opt/app/secrets/gcp.json
 
-1. Regenerar el bundle (paso 2).
-2. Volver a aplicar:
-   ```
-   tofu apply
-   ```
+# Clave SSH de Vast.ai válida
+sudo ssh-keygen -yf /opt/app/secrets/vast_ed25519 >/dev/null && echo HOST_OK || echo HOST_FAIL
 
-## Secrets
-
-- `GCP_SA_B64` se obtiene desde Secret Manager y se transforma en `/opt/app/secrets/gcp.json`.
-- `VAST_SSH_KEY` se escribe en `/opt/app/secrets/vast_ed25519`.
-- `VAST_API_KEY` se inyecta al runtime y es requerido por el worker.
-- `DB_PASSWORD` se obtiene desde Secret Manager en runtime para construir `DATABASE_URL` y ejecutar migraciones.
-
-### Secrets requeridos (paso a paso)
-
-1. `VAST_SSH_KEY` (clave privada OpenSSH):
-   ```
-   .\opentofu\dev\scripts\vast_ssh_setup.ps1 -Project unlu-genai-serranodavid
-   ```
-
-2. `VAST_API_KEY`:
-   ```
-   $apiKey = "TU_VAST_API_KEY"
-   $tmp = New-TemporaryFile
-   $apiKey | Set-Content -NoNewline $tmp
-   gcloud secrets create VAST_API_KEY --replication-policy=automatic --project unlu-genai-serranodavid 2>$null
-   gcloud secrets versions add VAST_API_KEY --data-file $tmp --project unlu-genai-serranodavid | Out-Null
-   Remove-Item $tmp
-   ```
-
-3. `DB_PASSWORD`:
-   ```
-   $dbPass = "TU_PASSWORD_BD"
-   $tmp = New-TemporaryFile
-   $dbPass | Set-Content -NoNewline $tmp
-   gcloud secrets create DB_PASSWORD --replication-policy=automatic --project unlu-genai-serranodavid 2>$null
-   gcloud secrets versions add DB_PASSWORD --data-file $tmp --project unlu-genai-serranodavid | Out-Null
-   Remove-Item $tmp
-   ```
-
-4. `GCP_SA_B64`:
-   - Se crea automaticamente con OpenTofu.
-
-## Destruir todo menos el secreto GCP_SA_B64
+# Clave SSH dentro del container training-worker
+cd /opt/app/src
+docker compose -f infra/docker/docker-compose.local.yml -f infra/docker/docker-compose.override.yml \
+  exec -T training-worker sh -lc 'ssh-keygen -yf /root/.ssh/id_ed25519 >/dev/null && echo CT_OK || echo CT_FAIL'
 ```
-tofu state rm --% google_secret_manager_secret.gcp_sa_b64[0] google_secret_manager_secret_version.gcp_sa_b64[0]
-tofu destroy
+
+## Secrets en runtime
+
+| Secret | Cómo se usa |
+|--------|-------------|
+| `GCP_SA_B64` | OpenTofu lo crea; se transforma en `/opt/app/secrets/gcp.json` en la VM |
+| `VAST_SSH_KEY` | Se escribe en `/opt/app/secrets/vast_ed25519` |
+| `VAST_API_KEY` | Se inyecta como variable de entorno al runtime |
+| `DB_PASSWORD` | Se lee en runtime para construir `DATABASE_URL` y ejecutar migraciones |
+
+## Cambios en el código de la app
+
+```bash
+# 1. Regenerar el bundle
+tar -czf app_bundle.tar.gz cv-cloudgpu-platform/
+
+# 2. Re-aplicar para que la VM descargue el nuevo bundle
+cd opentofu/dev
+tofu apply
 ```
+
+## Observabilidad
+
+El stack Grafana + Loki + Prometheus corre **dentro del cluster Kubernetes** (no en una VM separada).
+Ver la sección Observabilidad en el [README de cv-cloudgpu-platform](../cv-cloudgpu-platform/README.md).
 
 ## Conectar a Cloud SQL desde pgAdmin
 
-1. Ir a Cloud SQL -> Instancia -> Conexiones.
-2. Agregar tu IP publica en "Redes autorizadas".
-3. En pgAdmin usar:
-   - Host: IP publica de la instancia
-   - Puerto: 5432
-   - DB: computer-vision
-   - Usuario: valor de `db_user` (terraform variables)
+1. Ir a **Cloud SQL → Instancia → Conexiones** → Agregar tu IP pública en "Redes autorizadas".
+2. En pgAdmin usar:
+   - Host: IP pública de la instancia Cloud SQL
+   - Puerto: `5432`
+   - DB: `computer-vision`
+   - Usuario: valor de `db_user` en `terraform.tfvars`
    - Password: secreto `DB_PASSWORD` en Secret Manager
+
+## CI/CD — Workload Identity Federation
+
+GitHub Actions usa Workload Identity Federation para autenticarse en GCP **sin SA keys en el repositorio**. El workflow `.github/workflows/opentofu-destroy.yml` usa `google-github-actions/auth` con el provider y service account creados por OpenTofu.
+
+## Destruir toda la infraestructura
+
+```bash
+# Preservar el secreto GCP_SA_B64 (evita perder el SA key)
+tofu state rm -- \
+  google_secret_manager_secret.gcp_sa_b64[0] \
+  google_secret_manager_secret_version.gcp_sa_b64[0]
+
+tofu destroy
+```
